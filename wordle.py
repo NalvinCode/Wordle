@@ -1,5 +1,7 @@
 from array import array
+from operator import indexOf
 import random
+from secrets import choice
 
 
 import colorama
@@ -100,6 +102,7 @@ def initMenu():
 
     if selection == GAME_RULES:
         print(RULES)
+        initMenu()
 
     if selection == EXIT_GAME:
         return
@@ -115,7 +118,8 @@ def initGame():
     wordList = list(filter(lambda w: w not in saveList, wordList))
 
     #Obtengo palabra aleatoria de la lista filtrada#
-    word = wordList[random.randint(0, len(wordList) - 1)]
+    #word = wordList[random.randint(0, len(wordList) - 1)] --Cambio randint por choice()#
+    word = choice(wordList)
 
     #Inicializo el tablero#
     board = [["_", "_", "_", "_", "_"],
@@ -125,21 +129,14 @@ def initGame():
              ["_", "_", "_", "_", "_"],
              ["_", "_", "_", "_", "_"]]
 
-    #Inicializo matriz de colores#
-    coloredWords = [["_", "_", "_", "_", "_"],
-                    ["_", "_", "_", "_", "_"],
-                    ["_", "_", "_", "_", "_"],
-                    ["_", "_", "_", "_", "_"],
-                    ["_", "_", "_", "_", "_"],
-                    ["_", "_", "_", "_", "_"]]
+    #Inicializo diccionario de colores#
+    coloredWords = {}
 
     #Inicio el nivel#
     startLevel(board, word, coloredWords)
 
 
 def startLevel(board, word, coloredWords):
-    #Testeo#
-    print(word)
 
     printBoard(coloredWords, board)
     guesses = 0
@@ -149,14 +146,11 @@ def startLevel(board, word, coloredWords):
         if not validWord(guess):
             continue
 
-        for i in range(len(guess)):
-            board[guesses][i] = guess[i]
-            coloredWords[guesses].append(BLACK_ID)
-            if(guess[i] in word):
-                coloredWords[guesses][i] = YELLOW_ID
-            if (guess[i] == word[i]):
-                coloredWords[guesses][i] = GREEN_ID
+        #Coloreo palabras#
+        colorWords(word, guess, coloredWords, board, guesses)
+
         guesses += 1
+
         printBoard(coloredWords, board)
 
         #Si la palabra es correcta, termino el nivel#
@@ -199,18 +193,38 @@ def startLevel(board, word, coloredWords):
     return
 
 
+def colorWords(word, guess, coloredWords, board, guesses):
+    for i in range(len(guess)):
+        board[guesses][i] = guess[i]
+        #Obtengo longitud del diccionario#
+        keys = len(list(coloredWords.keys()))
+        if (guess[i] == word[i]):
+            coloredWords[str(keys + 1)] = GREEN_ID
+            continue
+        #Si la cantidad de letras repetidas en guess son mayores que en word, no pinto las que sobran#
+        if((guess[0:i]).count(guess[i]) >= word.count(guess[i])):
+            coloredWords[str(keys + 1)] = BLACK_ID
+            continue
+        if(guess[i] in word):
+            coloredWords[str(keys + 1)] = YELLOW_ID
+            continue
+
+
 def printBoard(coloredWords, board):
+    key = 0
     for i in range(len(board)):
         for z in range(len(board[i])):
-            if(coloredWords[i][z] == BLACK_ID):
-                print(Fore.BLACK + board[i][z], end=' ')
-                continue
-            if(coloredWords[i][z] == YELLOW_ID):
-                print(Fore.YELLOW + board[i][z], end=' ')
-                continue
-            if(coloredWords[i][z] == GREEN_ID):
-                print(Fore.GREEN + board[i][z], end=' ')
-                continue
+            if(board[i][z] != "_"):
+                key += 1
+                if(coloredWords[str(key)] == BLACK_ID):
+                    print(Fore.BLACK + board[i][z], end=' ')
+                    continue
+                if(coloredWords[str(key)] == YELLOW_ID):
+                    print(Fore.YELLOW + board[i][z], end=' ')
+                    continue
+                if(coloredWords[str(key)] == GREEN_ID):
+                    print(Fore.GREEN + board[i][z], end=' ')
+                    continue
             print(board[i][z], end=' ')
         print()
 
@@ -218,7 +232,7 @@ def printBoard(coloredWords, board):
 def validWord(word):
     wordList = getWordList()
 
-    if (len(word) > WORD_LEN) or (len(word) < WORD_LEN):
+    if (len(word) != WORD_LEN):
         print("Palabra invalida")
         return False
 
